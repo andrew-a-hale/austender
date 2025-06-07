@@ -1,0 +1,4 @@
+*.parquet
+/archive
+/datalake
+dat.db
