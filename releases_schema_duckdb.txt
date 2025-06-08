@@ -1,0 +1,56 @@
+STRUCT(
+  ocid VARCHAR,
+  id VARCHAR,
+  date TIMESTAMP,
+  initiationType VARCHAR,
+  language VARCHAR,
+  parties STRUCT(
+    id VARCHAR,
+    name VARCHAR,
+    additionalIdentifiers STRUCT(id VARCHAR, scheme VARCHAR)[],
+    address STRUCT(
+      streetAddress VARCHAR,
+      locality VARCHAR,
+      region VARCHAR,
+      postalCode VARCHAR,
+      countryName VARCHAR
+    ),
+    contactPoint STRUCT(
+      name VARCHAR,
+      telephone VARCHAR,
+      branch VARCHAR,
+      division VARCHAR,
+      email VARCHAR
+    ),
+    roles VARCHAR[]
+  )[],
+  awards STRUCT(
+    id VARCHAR,
+    suppliers STRUCT(id VARCHAR, name VARCHAR)[],
+    status VARCHAR,
+    date TIMESTAMP
+  )[],
+  contracts STRUCT(
+    id VARCHAR,
+    awardID VARCHAR,
+    dateSigned TIMESTAMP,
+    description VARCHAR,
+    title VARCHAR,
+    items STRUCT(id VARCHAR, classification STRUCT(scheme VARCHAR, id VARCHAR))[],
+    period STRUCT(startDate TIMESTAMP, endDate TIMESTAMP),
+    value STRUCT(currency VARCHAR, amount VARCHAR),
+    status VARCHAR,
+    amendments STRUCT(id VARCHAR, releaseID VARCHAR, amendsReleaseID VARCHAR)[]
+  )[],
+  tag VARCHAR[],
+  tender STRUCT(
+    id VARCHAR,
+    procurementMethod VARCHAR,
+    procurementMethodDetails VARCHAR,
+    limitedTenderExempt VARCHAR,
+    limitedTenderReasonCode VARCHAR,
+    limitedTenderReason VARCHAR,
+    exemptionCode VARCHAR,
+    exemption VARCHAR
+  )
+)[]

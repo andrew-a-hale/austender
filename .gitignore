@@ -1,4 +1,5 @@
-*.parquet
 /archive
 /datalake
 dat.db
+metadata.ducklake
+metadata.ducklake.wal

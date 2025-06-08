@@ -1,10 +1,24 @@
 #!/bin/bash
 set -e
 
+DUCKDB_PREABLE="\
+install ducklake;
+attach 'ducklake:metadata.ducklake' as lake (DATA_PATH 'datalake/');"
 ARCHIVE=archive/
+export DUCKDB_RAW_TENDER_COLS="{
+  uri: 'varchar'
+  , publisher_name: 'varchar'
+  , published_date: 'datetime'
+  , license: 'varchar'
+  , version: 'varchar'
+  , releases: '$(cat releases_schema_duckdb.txt)'
+  , extensions: 'varchar[]'
+  , links: 'json'
+}"
 export TYPE=contractStart
 export RAW=datalake/bronze
 export LOG=$(date "+%Y%m%d%H%M%S%3N").log
+
 [ -d $ARCHIVE ] || mkdir -p $ARCHIVE
 [ -d $RAW ] || mkdir -p $RAW
 [ -e $LOG ] || touch $LOG
@@ -20,15 +34,15 @@ function call() {
 
   err=$(echo $payload | jq -r '.errorCode // empty')
   if [ -z $err ]; then
-    jq -n -c --arg job $1 '{"level": "SUCCESS", "job_id": $job}' | tee -a $LOG
-    echo $payload >$out/data.json
+    jq -n -c --arg job $1 '{"ts": now, "level": "SUCCESS", "job_id": $job}' | tee -a $LOG
+    echo $payload |
+      duckdb -c "copy (from read_json('/dev/stdin', columns=$DUCKDB_RAW_TENDER_COLS)) to '$out/data.parquet'"
   else
     echo $payload |
-      jq -c --arg job $1 '{"level": "ERROR", "job_id": $job, "msg": .message}' |
+      jq -c --arg job $1 '{"ts": now, "level": "ERROR", "job_id": $job, "msg": .message}' |
       tee -a $LOG
   fi
 }
-
 export -f call
 
 # Job Queue
@@ -73,7 +87,7 @@ duckdb dat.db -c "\
 
 # LOAD
 TICK=$(date +%s%N)
-duckdb -c "copy (from '$RAW/**/*.json') to 'tenders.parquet'"
+duckdb -c "$DUCKDB_PREABLE insert into lake.raw_tenders from '$RAW/**/*.json'"
 TOCK=$(date +%s%N)
 ELAPSED=$((TOCK - TICK))
 echo "LOAD -- Elapsed time: $((ELAPSED / 1000000)) ms"
