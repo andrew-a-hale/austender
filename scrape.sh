@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-DUCKDB_PREABLE="\
+DUCKDB_PREAMBLE="\
 install ducklake;
 attach 'ducklake:metadata.ducklake' as lake (DATA_PATH 'datalake/');"
 ARCHIVE=archive/
@@ -19,6 +19,7 @@ export TYPE=contractStart
 export RAW=datalake/bronze
 export LOG=$(date "+%Y%m%d%H%M%S%3N").log
 
+# setup dirs
 [ -d $ARCHIVE ] || mkdir -p $ARCHIVE
 [ -d $RAW ] || mkdir -p $RAW
 [ -e $LOG ] || touch $LOG
@@ -87,7 +88,7 @@ duckdb dat.db -c "\
 
 # LOAD
 TICK=$(date +%s%N)
-duckdb -c "$DUCKDB_PREABLE insert into lake.raw_tenders from '$RAW/**/*.json'"
+duckdb -c "$DUCKDB_PREAMBLE insert into lake.raw_tenders from '$RAW/**/*.json'"
 TOCK=$(date +%s%N)
 ELAPSED=$((TOCK - TICK))
 echo "LOAD -- Elapsed time: $((ELAPSED / 1000000)) ms"

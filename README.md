@@ -19,11 +19,11 @@ ENDPOINT: `/ocds/findByDates/<dateType>/<start:yyyy-mm-ddThh:MM:ssZ>/<end:yyyy-m
 
 ## Dependencies
 
+- `bash`
 - `duckdb`
 - `gnu parallel`
 - `jq`
 - `curl`
-- `bash`
 
 ## TODO
 
