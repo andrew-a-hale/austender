@@ -17,7 +17,7 @@ select
   , null::datetime as processed_at
   , null::datetime as completed_at
   , null::varchar as last_error_msg
-from generate_series(date '2025-06-01' - today(), 0)
+from generate_series(date '2013-01-01' - today(), 0)
 on conflict do nothing;
 
 create table if not exists dlq (
