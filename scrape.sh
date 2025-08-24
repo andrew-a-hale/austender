@@ -1,20 +1,7 @@
 #!/bin/bash
 set -e
 
-DUCKDB_PREAMBLE="\
-install ducklake;
-attach 'ducklake:metadata.ducklake' as lake (DATA_PATH 'datalake/');"
 ARCHIVE=archive/
-export DUCKDB_RAW_TENDER_COLS="{
-  uri: 'varchar'
-  , publisher_name: 'varchar'
-  , published_date: 'datetime'
-  , license: 'varchar'
-  , version: 'varchar'
-  , releases: '$(cat releases_schema_duckdb.txt)'
-  , extensions: 'varchar[]'
-  , links: 'json'
-}"
 export TYPE=contractStart
 export RAW=datalake/bronze
 export LOG=$(date "+%Y%m%d%H%M%S%3N").log
@@ -28,7 +15,7 @@ function call() {
   start="$1"T00:00:00Z
   end="$1"T23:59:59Z
 
-  out=$RAW/$(date -I -d "$start")
+  out="$RAW/$(date -j -f "%Y-%m-%d" "$1" "+%Y-%m-%d")"
   [ -d $out ] || mkdir $out
 
   payload=$(curl -s "https://api.tenders.gov.au/ocds/findByDates/$TYPE/$start/$end")
@@ -37,7 +24,7 @@ function call() {
   if [ -z $err ]; then
     jq -n -c --arg job $1 '{"ts": now, "level": "SUCCESS", "job_id": $job}' | tee -a $LOG
     echo $payload |
-      duckdb -c "copy (from read_json('/dev/stdin', columns=$DUCKDB_RAW_TENDER_COLS)) to '$out/data.parquet'"
+      duckdb -c "copy (select * exclude releases from read_json('/dev/stdin'), unnest(releases)) to '$out/data.parquet'"
   else
     echo $payload |
       jq -c --arg job $1 '{"ts": now, "level": "ERROR", "job_id": $job, "msg": .message}' |
@@ -88,7 +75,7 @@ duckdb dat.db -c "\
 
 # LOAD
 TICK=$(date +%s%N)
-duckdb -c "$DUCKDB_PREAMBLE insert into lake.raw_tenders from '$RAW/**/*.json'"
+duckdb -c "copy (select uri, publisher, publishedDate, license, version, unnest::json as payload, extensions, links from read_parquet('$RAW/**/*.parquet', union_by_name = true)) to 'tendies.parquet'"
 TOCK=$(date +%s%N)
 ELAPSED=$((TOCK - TICK))
 echo "LOAD -- Elapsed time: $((ELAPSED / 1000000)) ms"
